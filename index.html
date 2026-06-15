@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MijnDigiLoket – Scholengroep Kapelle-op-den-Bos</title>
+  <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.39.0/lib/msal-browser.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --kie-color: #1A6BB5;   /* Het Kiezeltje – blauw */
+      --kei-color: #2E8B57;   /* De Kei – groen */
+      --mul-color: #C05A1A;   /* 't Mulderke – donker oranje */
+      --base:      #0F1D2E;   /* nacht-blauw basis */
+      --surface:   #F5F7FA;
+      --card-bg:   #FFFFFF;
+      --text:      #1C2B3A;
+      --muted:     #6B7A8D;
+      --border:    #DDE3EC;
+      --accent:    #1F4E79;
+      --radius:    12px;
+      --shadow:    0 2px 12px rgba(15,29,46,.08);
+      --shadow-hv: 0 6px 24px rgba(15,29,46,.15);
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--surface);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── LOADING ── */
+    #loading-screen {
+      position: fixed; inset: 0;
+      background: var(--base);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 20px; z-index: 999;
+    }
+    .loader-logo { font-size: 2rem; font-weight: 700; color: #fff; letter-spacing: -1px; }
+    .loader-logo span { color: var(--kei-color); }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(255,255,255,.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── LOGIN ── */
+    #login-screen {
+      display: none; min-height: 100vh;
+      background: var(--base);
+      align-items: center; justify-content: center;
+    }
+    .login-card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      padding: 48px 40px;
+      max-width: 420px; width: 90%;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,.3);
+    }
+    .login-logo-row {
+      display: flex; align-items: center; justify-content: center;
+      gap: 10px; margin-bottom: 28px;
+    }
+    .logo-badge {
+      width: 14px; height: 14px; border-radius: 3px;
+    }
+    .login-card h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+    .login-card p { color: var(--muted); font-size: .9rem; margin-bottom: 32px; }
+    .btn-login {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--base); color: #fff;
+      border: none; border-radius: 10px;
+      padding: 14px 28px; font-size: .95rem; font-weight: 600;
+      cursor: pointer; width: 100%; justify-content: center;
+      transition: opacity .15s;
+    }
+    .btn-login:hover { opacity: .85; }
+    .btn-login svg { flex-shrink: 0; }
+
+    /* ── MAIN APP ── */
+    #app { display: none; }
+
+    header {
+      background: var(--base);
+      padding: 0 32px;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .school-dots { display: flex; gap: 5px; }
+    .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    .header-title { color: #fff; font-weight: 600; font-size: 1rem; }
+    .header-title small { display: block; font-weight: 400; font-size: .72rem; color: rgba(255,255,255,.5); margin-top: 1px; }
+
+    .user-chip {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .user-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(255,255,255,.15);
+      color: #fff; font-weight: 600; font-size: .85rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .user-name { color: rgba(255,255,255,.8); font-size: .85rem; }
+    .btn-logout {
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.15);
+      color: rgba(255,255,255,.7);
+      border-radius: 7px; padding: 5px 12px;
+      font-size: .78rem; cursor: pointer; font-family: inherit;
+      transition: all .15s;
+    }
+    .btn-logout:hover { background: rgba(255,255,255,.2); color: #fff; }
+
+    main { max-width: 1100px; margin: 0 auto; padding: 40px 24px 60px; }
+
+    .welcome-row {
+      margin-bottom: 36px;
+    }
+    .welcome-row h2 { font-size: 1.6rem; font-weight: 700; }
+    .welcome-row p { color: var(--muted); margin-top: 4px; font-size: .9rem; }
+
+    /* ── ROLE BADGE ── */
+    .role-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: .75rem; font-weight: 600; padding: 3px 10px;
+      border-radius: 20px; margin-top: 8px;
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+
+    /* ── SECTION ── */
+    .section-label {
+      font-size: .72rem; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* ── APP GRID ── */
+    .app-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+      margin-bottom: 40px;
+    }
+
+    .app-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 24px;
+      cursor: pointer;
+      text-decoration: none;
+      color: inherit;
+      display: flex; flex-direction: column; gap: 14px;
+      box-shadow: var(--shadow);
+      transition: transform .18s, box-shadow .18s;
+      position: relative; overflow: hidden;
+    }
+    .app-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 4px;
+      background: var(--card-accent, var(--accent));
+    }
+    .app-card[data-coming-soon="1"] { opacity: 0.6; cursor: default; }
+    .app-card[data-coming-soon="1"]::after { content: "Binnenkort beschikbaar"; position: absolute; top: 10px; right: 10px; font-size: 10px; background: #6B7A8D; color: white; padding: 2px 7px; border-radius: 10px; }
+    .app-card[data-coming-soon="1"]:hover { transform: none; box-shadow: none; }
+    .app-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--shadow-hv);
+    }
+
+    .card-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      background: var(--card-accent-light, #EBF3FF);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+    }
+    .card-body { flex: 1; }
+    .card-body h3 { font-size: 1rem; font-weight: 600; margin-bottom: 4px; }
+    .card-body p { font-size: .83rem; color: var(--muted); line-height: 1.45; }
+
+    .card-footer {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-tag {
+      font-size: .7rem; font-weight: 600; padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .card-arrow { color: var(--muted); font-size: 1.1rem; }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--muted);
+    }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 12px; }
+
+    /* ── IFRAME OVERLAY ── */
+    #app-overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 200;
+      flex-direction: column;
+      background: #fff;
+    }
+    #app-overlay.active { display: flex; }
+    .overlay-bar {
+      background: var(--base);
+      height: 52px; min-height: 52px;
+      display: flex; align-items: center; padding: 0 20px; gap: 14px;
+    }
+    .btn-back {
+      background: rgba(255,255,255,.12);
+      border: none; color: #fff;
+      border-radius: 7px; padding: 6px 14px;
+      font-size: .85rem; font-family: inherit;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+      transition: background .15s;
+    }
+    .btn-back:hover { background: rgba(255,255,255,.22); }
+    .overlay-title { color: #fff; font-weight: 500; font-size: .9rem; }
+    #app-frame {
+      flex: 1; border: none; width: 100%;
+    }
+
+    /* ── ROL SWITCHER ── */
+    .role-switch-btn {
+      font-family: inherit;
+      font-size: .75rem; font-weight: 600;
+      padding: 4px 12px; border-radius: 20px;
+      border: 1.5px solid var(--border);
+      background: var(--card-bg); color: var(--muted);
+      cursor: pointer; transition: all .15s;
+    }
+    .role-switch-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .role-switch-btn.active {
+      background: var(--btn-bg, var(--accent));
+      color: var(--btn-color, #fff);
+      border-color: transparent;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      header { padding: 0 16px; }
+      main { padding: 28px 16px 48px; }
+      .user-name { display: none; }
+      .app-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-screen">
+  <div class="loader-logo">MijnDigi<span>KAntoor</span></div>
+  <div class="spinner"></div>
+</div>
+
+<!-- LOGIN -->
+<div id="login-screen" style="display:none;">
+  <div class="login-card">
+    <div class="login-logo-row">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="8" fill="#0F1D2E"/>
+        <rect x="6" y="6" width="8" height="8" rx="2" fill="#1A6BB5"/>
+        <rect x="18" y="6" width="8" height="8" rx="2" fill="#2E8B57"/>
+        <rect x="6" y="18" width="8" height="8" rx="2" fill="#C05A1A"/>
+        <rect x="18" y="18" width="8" height="8" rx="2" fill="#6B7A8D"/>
+      </svg>
+      <span style="font-weight:700; font-size:1.1rem;">MijnDigiLoket portaal</span>
+    </div>
+    <h1>Welkom</h1>
+    <p>Meld je aan met je Microsoft-account van MijnDigiLoket om toegang te krijgen tot de applicaties.</p>
+    <button class="btn-login" onclick="signIn()">
+      <svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+      </svg>
+      Aanmelden met Microsoft
+    </button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <header>
+    <div class="header-left">
+      <div class="school-dots">
+        <div class="dot" style="background:var(--kie-color)"></div>
+        <div class="dot" style="background:var(--kei-color)"></div>
+        <div class="dot" style="background:var(--mul-color)"></div>
+      </div>
+      <div class="header-title">
+        MijnDigiLoket Portaal
+        <small>Scholengroep Londerzeel BaO</small>
+      </div>
+    </div>
+    <div class="user-chip">
+      <div class="user-avatar" id="user-avatar">?</div>
+      <span class="user-name" id="user-display-name">–</span>
+      <button class="btn-logout" onclick="signOut()">Afmelden</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="welcome-row">
+      <h2 id="greeting">Goedemorgen</h2>
+      <p>Kies een applicatie om mee aan de slag te gaan.</p>
+      <div id="role-badge-container"></div>
+      <div id="role-switcher" style="display:none; margin-top:14px;">
+        <span style="font-size:.78rem; color:var(--muted); margin-right:8px;">Bekijk als:</span>
+        <div style="display:inline-flex; flex-wrap:wrap; gap:6px;" id="role-switcher-buttons"></div>
+      </div>
+    </div>
+
+    <div id="apps-container">
+      <p class="empty-state"><span class="icon">⏳</span><br>Applicaties worden geladen…</p>
+    </div>
+  </main>
+</div>
+
+<!-- IFRAME OVERLAY -->
+<div id="app-overlay">
+  <div class="overlay-bar">
+    <button class="btn-back" onclick="closeOverlay()">
+      ← Terug naar portaal
+    </button>
+    <span class="overlay-title" id="overlay-title"></span>
+  </div>
+  <iframe id="app-frame" src="" title="Applicatie"></iframe>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIGURATIE
+// ═══════════════════════════════════════════════
+const MSAL_CONFIG = {
+  auth: {
+    clientId: "481e8cb4-58ca-49b1-bb8b-5b02cbb45b4c",  // BaO LON - Mijn DigiKAntoor
+    authority: "https://login.microsoftonline.com/655d15e1-e5fc-4868-8462-8463dc0ff014",
+    redirectUri: "https://lon-ka.github.io/LON-portaal/",
+  },
+  cache: { cacheLocation: "localStorage" }
+};
+
+// ── Rol-configuratie ──────────────────────────
+// Rollen worden bepaald o.b.v. Azure AD groepen of UPN.
+// Pas de groeps-OIDs aan in je Azure App Registration → Manifest (groupMembershipClaims: "All")
+// OF gebruik UPN-patronen als tijdelijke fallback.
+const ROLE_CONFIG = {
+  // Azure AD Group Object IDs → rol-mapping
+  // Vul deze aan met de echte OIDs uit jouw tenant
+  groups: {
+    // "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx": "admin",
+    // "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy": "directie",
+  },
+  // Fallback: UPN-patronen (tijdelijk, vervang door groepen)
+  // Vaste e-mailadressen → rol-mapping
+  emails: {
+    "ict@centrumschool.londerzeel.be": "admin",
+  },
+  upnPatterns: [
+    { pattern: /directie/i,         role: "directie" },
+    { pattern: /secretariaat/i,     role: "secretariaat" },
+    { pattern: /zorg/i,             role: "zorg" },
+  ],
+  defaultRole: "leerkracht"
+};
+
+// ── App-definitie ─────────────────────────────
+// roles: [] = zichtbaar voor iedereen
+// ═══════════════════════════════════════════════
+// APP-DEFINITIE
+// Velden:
+//   id          – unieke sleutel
+//   title       – naam op de kaart
+//   subtitle    – korte omschrijving
+//   icon        – emoji
+//   url         – GitHub Pages URL van de app
+//   accent      – kleur van de bovenste balk op de kaart
+//   accentLight – achtergrond van het icoon
+//   tag         – label op de kaart (vrije tekst)
+//   tagColor    – kleur van het label
+//   roles       – [] = iedereen, anders lijst van rollen
+//   school      – optioneel: "De Kei" | "Het Kiezeltje" | "'t Mulderke" | null
+//   category    – optioneel: voor toekomstige groepering
+//
+// ➕ Nieuwe app toevoegen: kopieer een blok hieronder en pas aan.
+// ═══════════════════════════════════════════════
+const APPS = [
+  // ── Veiligheid & Welzijn ─────────────────────
+  {
+    id: "lon-meldpunt",
+    title: "Meldpunt",
+    subtitle: "Meld veiligheids- en welzijnsincidenten en andere voorvallen.",
+    icon: "🛡️",
+    url: "https://lon-ka.github.io/LON-Meldpunt/",
+    accent: "#C05A1A",
+    accentLight: "#FEF0E7",
+    tag: "Veiligheid & Welzijn",
+    tagColor: "#C05A1A",
+    roles: [],
+    school: null,
+    category: "welzijn",
+  },
+  // ── Financieel ───────────────────────────────
+  {
+    id: "lon-onkosten",
+    title: "Onkostennota's",
+    subtitle: "Dien vergoedingen in voor fiets, openbaar vervoer en eigen voertuig.",
+    icon: "🧾",
+    url: "https://lon-ka.github.io/LON-Onkosten/",
+    accent: "#2E8B57",
+    accentLight: "#E8F5EE",
+    tag: "Financieel",
+    tagColor: "#2E8B57",
+    roles: [],
+    school: null,
+    category: "financieel",
+  },
+  // ── Personeelsbeheer ─────────────────────────
+  {
+    id: "lon-volgsysteem",
+    title: "Leerkrachten Volgsysteem",
+    subtitle: "Beheer personeelsgegevens, functies en aanstellingen van leerkrachten.",
+    icon: "👥",
+    url: "https://lon-ka.github.io/LON-Leerkrachten/",
+    accent: "#1A6BB5",
+    accentLight: "#EBF3FF",
+    tag: "Personeelsbeheer",
+    tagColor: "#1A6BB5",
+    roles: ["admin", "directie", "secretariaat"],
+    school: null,
+    category: "personeel",
+    comingSoon: true,
+  },
+  // ── Planning ─────────────────────────────────
+  {
+    id: "lon-uitstappen",
+    title: "Schooluitstappen",
+    subtitle: "Plan en beheer schooluitstappen met goedkeuringsworkflow en budgetbewaking.",
+    icon: "🚌",
+    url: "https://lon-ka.github.io/LON-Schooluitstappen/",
+    accent: "#7B5EA7",
+    accentLight: "#F0EBF8",
+    tag: "Planning",
+    tagColor: "#7B5EA7",
+    roles: [],
+    school: null,
+    category: "planning",
+  }
+  // ── Professionalisering ──────────────────────
+  {
+    id: "digikompas",
+    title: "DigiKompas LONKA",
+    subtitle: "Persoonlijke zelfscan en jaarplanner voor digitale geletterdheid.",
+    icon: "🧭",
+    url: "https://lon-ka.github.io/DigiKompas/",
+    accent: "#0891B2",
+    accentLight: "#E0F7FA",
+    tag: "Professionalisering",
+    tagColor: "#0891B2",
+    roles: [],
+    school: null,
+    category: "professionalisering",
+  },
+  // ── Hier nieuwe apps toevoegen ───────────────
+  // {
+  //   id: "ka-nieuwe-app",
+  //   title: "Nieuwe App",
+  //   subtitle: "Omschrijving.",
+  //   icon: "🔧",
+  //   url: "https://lon-ka.github.io/KA-NieuweApp/",
+  //   accent: "#...",
+  //   accentLight: "#...",
+  //   tag: "Categorie",
+  //   tagColor: "#...",
+  //   roles: [],        // [] = iedereen, of bv. ["admin", "directie"]
+  //   school: null,     // of "De Kei" / "Het Kiezeltje" / "'t Mulderke"
+  //   category: "...", // welzijn | financieel | personeel | planning | professionalisering
+  // },
+];
+
+// ── Rol-labels & kleuren ──────────────────────
+const ROLE_META = {
+  admin:         { label: "Beheerder",      bg: "#0F1D2E", color: "#fff" },
+  directie:      { label: "Directie",       bg: "#1A6BB5", color: "#fff" },
+  secretariaat:  { label: "Secretariaat",   bg: "#2E8B57", color: "#fff" },
+  zorg:          { label: "Zorgleerkracht", bg: "#C05A1A", color: "#fff" },
+  leerkracht:    { label: "Leerkracht",     bg: "#E8EDF3", color: "#1C2B3A" },
+};
+
+// ═══════════════════════════════════════════════
+// MSAL INIT
+// ═══════════════════════════════════════════════
+var msalApp = null;
+let currentAccount = null;
+let currentRole = null;
+
+async function msalInit() {
+  msalApp = new msal.PublicClientApplication(MSAL_CONFIG);
+  await msalApp.initialize();
+  try {
+    const resp = await msalApp.handleRedirectPromise();
+    if (resp && resp.account) {
+      msalApp.setActiveAccount(resp.account);
+    }
+    const accounts = msalApp.getAllAccounts();
+    if (accounts.length > 0) {
+      currentAccount = msalApp.getActiveAccount() || accounts[0];
+      msalApp.setActiveAccount(currentAccount);
+      await loadApp();
+    } else {
+      showLogin();
+    }
+  } catch (e) {
+    console.error(e);
+    showLogin();
+  }
+}
+
+async function signIn() {
+  try {
+    await msalApp.loginRedirect({ scopes: ["User.Read"] });
+  } catch(e) { console.error(e); }
+}
+
+function signOut() {
+  msalApp.logoutRedirect({ postLogoutRedirectUri: window.location.href });
+}
+
+// ═══════════════════════════════════════════════
+// ROL BEPALEN
+// ═══════════════════════════════════════════════
+function determineRole(account) {
+  // 1. Via e-mailadres (exacte match)
+  const email = (account.username || "").toLowerCase();
+  if (ROLE_CONFIG.emails[email]) return ROLE_CONFIG.emails[email];
+  // 2. Via claims (als groepen geconfigureerd zijn in manifest)
+  const claims = account.idTokenClaims || {};
+  if (claims.groups && Array.isArray(claims.groups)) {
+    for (const gid of claims.groups) {
+      if (ROLE_CONFIG.groups[gid]) return ROLE_CONFIG.groups[gid];
+    }
+  }
+  // 3. Via UPN-patroon (fallback)
+  for (const { pattern, role } of ROLE_CONFIG.upnPatterns) {
+    if (pattern.test(email)) return role;
+  }
+  return ROLE_CONFIG.defaultRole;
+}
+
+// ═══════════════════════════════════════════════
+// APP RENDER
+// ═══════════════════════════════════════════════
+async function loadApp() {
+  currentRole = determineRole(currentAccount);
+  showApp();
+  renderWelcome();
+  renderApps();
+}
+
+function renderWelcome() {
+  const name = currentAccount.name || currentAccount.username;
+  const firstName = name.split(" ")[0];
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Goedemorgen" : hour < 18 ? "Goedemiddag" : "Goedenavond";
+
+  document.getElementById("greeting").textContent = `${greeting}, ${firstName}`;
+  document.getElementById("user-display-name").textContent = name;
+
+  const initials = name.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
+  document.getElementById("user-avatar").textContent = initials;
+
+  const meta = ROLE_META[currentRole] || ROLE_META.leerkracht;
+  const badgeEl = document.getElementById("role-badge-container");
+  badgeEl.innerHTML = `
+    <span class="role-badge" style="background:${meta.bg}; color:${meta.color};">
+      ${meta.label}
+    </span>`;
+
+  // Toon rol-switcher enkel voor admins
+  if (currentRole === "admin") {
+    renderRoleSwitcher();
+  }
+}
+
+let previewRole = null; // null = eigen rol
+
+function renderRoleSwitcher() {
+  const switcher = document.getElementById("role-switcher");
+  switcher.style.display = "block";
+
+  const rollen = [
+    { key: null,             label: "Mijn rol" },
+    { key: "leerkracht",     label: "Leerkracht" },
+    { key: "directie",       label: "Directie" },
+    { key: "secretariaat",   label: "Secretariaat" },
+    { key: "zorg",           label: "Zorgleerkracht" },
+  ];
+
+  const container = document.getElementById("role-switcher-buttons");
+  container.innerHTML = rollen.map(r => {
+    const m = r.key ? (ROLE_META[r.key] || {}) : ROLE_META["admin"];
+    const isActive = previewRole === r.key;
+    return `<button class="role-switch-btn ${isActive ? 'active' : ''}"
+      style="${isActive ? `--btn-bg:${m.bg}; --btn-color:${m.color || '#fff'};` : ''}"
+      onclick="switchPreviewRole(${r.key ? `'${r.key}'` : 'null'})">${r.label}</button>`;
+  }).join("");
+}
+
+function switchPreviewRole(role) {
+  previewRole = role;
+  renderRoleSwitcher();
+
+  // Pas badge aan om preview-rol te tonen
+  const effectiveRole = previewRole || currentRole;
+  const meta = ROLE_META[effectiveRole] || ROLE_META.leerkracht;
+  const badgeEl = document.getElementById("role-badge-container");
+  const previewLabel = previewRole ? ` <span style="font-size:.7em; opacity:.7">(preview)</span>` : "";
+  badgeEl.innerHTML = `
+    <span class="role-badge" style="background:${meta.bg}; color:${meta.color};">
+      ${meta.label}${previewLabel}
+    </span>`;
+
+  renderApps();
+}
+
+function renderApps() {
+  const effectiveRole = previewRole || currentRole;
+  const visible = APPS.filter(app =>
+    app.roles.length === 0 || app.roles.includes(effectiveRole)
+  );
+
+  const container = document.getElementById("apps-container");
+
+  if (visible.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🔒</div>
+        <p>Je hebt momenteel geen toegang tot applicaties.<br>
+        Neem contact op met de beheerder.</p>
+      </div>`;
+    return;
+  }
+
+  // Groepeer: voor iedereen vs. beperkt
+  const general = visible.filter(a => a.roles.length === 0);
+  const restricted = visible.filter(a => a.roles.length > 0);
+
+  let html = "";
+  if (general.length) {
+    html += `<p class="section-label">Applicaties</p>
+             <div class="app-grid">${general.map(cardHTML).join("")}</div>`;
+  }
+  if (restricted.length) {
+    html += `<p class="section-label">Beheer</p>
+             <div class="app-grid">${restricted.map(cardHTML).join("")}</div>`;
+  }
+  container.innerHTML = html;
+}
+
+function cardHTML(app) {
+  const schoolColors = {
+    "De Kei":        { bg: "#E8F5EE", color: "#2E8B57" },
+    "Het Kiezeltje": { bg: "#EBF3FF", color: "#1A6BB5" },
+    "'t Mulderke":   { bg: "#FEF0E7", color: "#C05A1A" },
+  };
+  const sc = app.school ? schoolColors[app.school] || {} : null;
+  const schoolBadge = sc
+    ? `<span class="card-tag" style="background:${sc.bg}; color:${sc.color};">🏫 ${app.school}</span>`
+    : "";
+
+  return `
+    <a class="app-card" href="#" onclick="openApp('${app.id}'); return false;"
+       style="--card-accent:${app.accent}; --card-accent-light:${app.accentLight};">
+      <div class="card-icon">${app.icon}</div>
+      <div class="card-body">
+        <h3>${app.title}</h3>
+        <p>${app.subtitle}</p>
+      </div>
+      <div class="card-footer">
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <span class="card-tag" style="background:${app.accentLight}; color:${app.tagColor};">${app.tag}</span>
+          ${schoolBadge}
+        </div>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>`;
+}
+
+async function openApp(id) {
+  const app = APPS.find(a => a.id === id);
+  if (!app) return;
+  document.getElementById("overlay-title").textContent = app.title;
+  document.getElementById("app-overlay").classList.add("active");
+  history.pushState({ overlay: id }, "", "#" + id);
+
+  // Haal token op voor de app
+  let token = null;
+  try {
+    const account = msalApp.getActiveAccount() || msalApp.getAllAccounts()[0];
+    if (account) {
+      const r = await msalApp.acquireTokenSilent({ scopes: ["Sites.ReadWrite.All"], account });
+      token = r.accessToken;
+    }
+  } catch(e) { console.warn("Token ophalen mislukt:", e); }
+
+  // Laad iframe en stuur token zodra geladen
+  const frame = document.getElementById("app-frame");
+  frame.onload = () => {
+    if (token && frame.contentWindow) {
+      frame.contentWindow.postMessage({ type: "MSAL_TOKEN", token, email: currentAccount?.username || "" }, "*");
+    }
+  };
+  frame.src = app.url;
+}
+
+function closeOverlay() {
+  document.getElementById("app-overlay").classList.remove("active");
+  document.getElementById("app-frame").src = "";
+  if (history.state && history.state.overlay) history.back();
+}
+
+window.addEventListener("popstate", (e) => {
+  if (!e.state || !e.state.overlay) {
+    document.getElementById("app-overlay").classList.remove("active");
+    document.getElementById("app-frame").src = "";
+  }
+});
+
+// ═══════════════════════════════════════════════
+// SCREEN HELPERS
+// ═══════════════════════════════════════════════
+function showLogin() {
+  document.getElementById("loading-screen").style.display = "none";
+  document.getElementById("login-screen").style.display = "flex";
+}
+function showApp() {
+  document.getElementById("loading-screen").style.display = "none";
+  document.getElementById("login-screen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+}
+
+// ═══════════════════════════════════════════════
+// START
+// ═══════════════════════════════════════════════
+window.addEventListener("DOMContentLoaded", msalInit);
+</script>
+</body>
+</html>
