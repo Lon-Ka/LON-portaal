@@ -733,19 +733,11 @@ async function openApp(id) {
     }
   } catch(e) { console.warn("Token ophalen mislukt:", e); }
 
-  // Laad iframe en stuur token herhaaldelijk tot ontvangen
+  // Laad iframe en stuur token zodra geladen
   const frame = document.getElementById("app-frame");
-  let _tokenSent = false;
   frame.onload = () => {
     if (token && frame.contentWindow) {
-      // Stuur meteen en daarna elke 300ms tot 5s
       frame.contentWindow.postMessage({ type: "MSAL_TOKEN", token, email: currentAccount?.username || "" }, "*");
-      let _attempts = 0;
-      const _interval = setInterval(() => {
-        _attempts++;
-        if (_attempts > 15) { clearInterval(_interval); return; }
-        try { frame.contentWindow.postMessage({ type: "MSAL_TOKEN", token, email: currentAccount?.username || "" }, "*"); } catch(e) {}
-      }, 300);
     }
   };
   frame.src = app.url;
