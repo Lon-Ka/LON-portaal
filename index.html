@@ -464,6 +464,20 @@ const APPS = [
   },
   // ── Professionalisering ──────────────────────
   {
+    id: "lon-sociogram",
+    title: "Sociogram",
+    subtitle: "Breng de sociale relaties in een klas in kaart via een digitale vragenlijst.",
+    icon: "🔗",
+    url: "https://lon-ka.github.io/LON-Sociogram/",
+    accent: "#0891B2",
+    accentLight: "#E0F7FA",
+    tag: "Professionalisering",
+    tagColor: "#0891B2",
+    roles: [],
+    school: null,
+    category: "professionalisering",
+  },
+  {
     id: "digikompas",
     title: "DigiKompas LONKA",
     subtitle: "Persoonlijke zelfscan en jaarplanner voor digitale geletterdheid.",
@@ -719,11 +733,19 @@ async function openApp(id) {
     }
   } catch(e) { console.warn("Token ophalen mislukt:", e); }
 
-  // Laad iframe en stuur token zodra geladen
+  // Laad iframe en stuur token herhaaldelijk tot ontvangen
   const frame = document.getElementById("app-frame");
+  let _tokenSent = false;
   frame.onload = () => {
     if (token && frame.contentWindow) {
+      // Stuur meteen en daarna elke 300ms tot 5s
       frame.contentWindow.postMessage({ type: "MSAL_TOKEN", token, email: currentAccount?.username || "" }, "*");
+      let _attempts = 0;
+      const _interval = setInterval(() => {
+        _attempts++;
+        if (_attempts > 15) { clearInterval(_interval); return; }
+        try { frame.contentWindow.postMessage({ type: "MSAL_TOKEN", token, email: currentAccount?.username || "" }, "*"); } catch(e) {}
+      }, 300);
     }
   };
   frame.src = app.url;
