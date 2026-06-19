@@ -257,7 +257,36 @@
       .user-name { display: none; }
       .app-grid { grid-template-columns: 1fr; }
     }
-  </style>
+  
+/* ── HELP DRAWER PORTAAL ─────────────────────────────── */
+.help-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:9000;opacity:0;pointer-events:none;transition:opacity .25s}
+.help-overlay.on{opacity:1;pointer-events:all}
+.help-drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100vw);background:white;z-index:9001;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-4px 0 32px rgba(0,0,0,.18)}
+.help-drawer.on{transform:translateX(0)}
+.help-hdr{color:white;padding:1.1rem 1.4rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.help-hdr h2{font-size:15px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px}
+.help-close{background:rgba(255,255,255,.2);border:none;border-radius:8px;color:white;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:background .15s}
+.help-close:hover{background:rgba(255,255,255,.35)}
+.help-nav{display:flex;border-bottom:2px solid #F0EDE5;flex-shrink:0;overflow-x:auto;background:#FAFAF8}
+.help-tab{padding:11px 16px;font-size:12px;font-weight:600;color:#888;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;transition:all .15s}
+.help-tab:hover{color:#333}.help-tab.active{color:var(--primary,#1A6B4A);border-bottom-color:var(--primary,#1A6B4A)}
+.help-body{flex:1;overflow-y:auto;padding:1.4rem}
+.help-section{display:none}.help-section.active{display:block}
+.help-section h3{font-size:15px;font-weight:700;margin:0 0 .6rem;color:#1A1A18}
+.help-section h4{font-size:11px;font-weight:700;color:#666;margin:1rem 0 .35rem;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #F0EDE5;padding-bottom:4px}
+.help-section p{font-size:13px;color:#444;line-height:1.7;margin:0 0 .75rem}
+.help-section ul{margin:.25rem 0 .85rem;padding-left:1.3rem}
+.help-section li{font-size:13px;color:#444;line-height:1.7;margin-bottom:.3rem}
+.help-cat-row{display:flex;align-items:flex-start;gap:12px;padding:.75rem;background:#F8F7F4;border-radius:10px;margin-bottom:.6rem}
+.help-cat-icon{font-size:22px;flex-shrink:0;width:36px;text-align:center}
+.help-cat-body h5{font-size:13px;font-weight:700;margin:0 0 3px;color:#1A1A18}
+.help-cat-body p{font-size:12px;color:#666;margin:0;line-height:1.55}
+.help-role-row{display:flex;align-items:center;gap:10px;padding:.6rem .75rem;border-radius:8px;margin-bottom:.4rem;background:#F8F7F4}
+.help-role-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;color:white;white-space:nowrap;flex-shrink:0}
+.help-role-desc{font-size:12px;color:#555;line-height:1.5}
+.help-tip{border-left:3px solid #888;border-radius:0 8px 8px 0;padding:.65rem .9rem;margin:.75rem 0;font-size:12px;line-height:1.6;background:#F8F7F4;color:#444}
+.help-footer{padding:.85rem 1.4rem;border-top:1px solid #E8E5DC;font-size:11px;color:#AAA;flex-shrink:0;text-align:center}
+</style>
 </head>
 <body>
 
@@ -311,7 +340,7 @@
     <div class="user-chip">
       <div class="user-avatar" id="user-avatar">?</div>
       <span class="user-name" id="user-display-name">–</span>
-      <a href="https://lon-ka.github.io/LON-Meldpunt/gdpr.html" target="_blank" style="font-size:11px;color:var(--muted);text-decoration:none;margin-right:10px;opacity:.75">Privacy & GDPR</a><button class="btn-logout" onclick="signOut()">Afmelden</button>
+      <a href="https://lon-ka.github.io/LON-Meldpunt/gdpr.html" target="_blank" style="font-size:11px;color:var(--muted);text-decoration:none;margin-right:10px;opacity:.75">Privacy & GDPR</a><button onclick="openHelp()" title="Help" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:white;padding:6px 14px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px;margin-right:6px">&#63; Help</button><button class="btn-logout" onclick="signOut()">Afmelden</button>
     </div>
   </header>
 
@@ -773,6 +802,124 @@ function showApp() {
 // START
 // ═══════════════════════════════════════════════
 window.addEventListener("DOMContentLoaded", msalInit);
+
+function openHelp(){
+  document.getElementById('helpOverlay').classList.add('on');
+  document.getElementById('helpDrawer').classList.add('on');
+  document.body.style.overflow='hidden';
+}
+function closeHelp(){
+  document.getElementById('helpOverlay').classList.remove('on');
+  document.getElementById('helpDrawer').classList.remove('on');
+  document.body.style.overflow='';
+}
+function showHelpTab(id,btn){
+  document.querySelectorAll('.help-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.help-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('help-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeHelp();});
+
 </script>
+
+<!-- HELP DRAWER -->
+<div class="help-overlay" id="helpOverlay" onclick="closeHelp()"></div>
+<div class="help-drawer" id="helpDrawer" style="--primary:#0D1B2A">
+  <div class="help-hdr" style="background:#0D1B2A">
+    <h2>&#9432; Help &mdash; MijnDigiLoket</h2>
+    <button class="help-close" onclick="closeHelp()">&#x2715;</button>
+  </div>
+  <div class="help-nav">
+    <button class="help-tab active" onclick="showHelpTab('portaal',this)">Het portaal</button>
+    <button class="help-tab" onclick="showHelpTab('apps',this)">Applicaties</button>
+    <button class="help-tab" onclick="showHelpTab('rollen',this)">Wie ziet wat?</button>
+    <button class="help-tab" onclick="showHelpTab('aanmelden',this)">Aanmelden</button>
+  </div>
+  <div class="help-body">
+
+    <!-- PORTAAL -->
+    <div class="help-section active" id="help-portaal">
+      <h3>&#127968; Over MijnDigiLoket</h3>
+      <p><strong>MijnDigiLoket</strong> is het centrale startpunt voor alle digitale toepassingen van de scholengroep. Via één aanmelding met je Microsoft-account krijg je toegang tot alle apps waarvoor je rechten hebt.</p>
+      <div class="help-tip"><strong>Eén aanmelding:</strong> je logt in via je Microsoft 365-account van de school. Een apart wachtwoord is niet nodig.</div>
+      <h4>Hoe werkt het?</h4>
+      <ul>
+        <li>Klik op een app-tegel om de applicatie te openen</li>
+        <li>De app opent in het portaal zelf — je blijft aangemeld</li>
+        <li>Gebruik de knop <strong>← Terug naar portaal</strong> om terug te keren</li>
+        <li>Sommige tegels zijn enkel zichtbaar voor bepaalde rollen of scholen</li>
+      </ul>
+      <h4>Afmelden</h4>
+      <p>Klik op de knop <strong>Afmelden</strong> rechts bovenaan om volledig af te melden uit het portaal én alle apps tegelijk.</p>
+    </div>
+
+    <!-- APPS -->
+    <div class="help-section" id="help-apps">
+      <h3>&#128640; Beschikbare applicaties</h3>
+      <p>De apps zijn gegroepeerd per categorie. Enkel de apps waarvoor je rechten hebt zijn zichtbaar.</p>
+      
+      <h4>&#128737; Veiligheid &amp; Welzijn</h4>
+      <div class="help-cat-row"><div class="help-cat-icon">🛡️</div><div class="help-cat-body"><h5>Meldpunt</h5><p>Meld veiligheids- en welzijnsincidenten snel en vertrouwelijk. Zichtbaar voor alle personeelsleden.</p></div></div>
+
+      <h4>&#128181; Financieel</h4>
+      <div class="help-cat-row"><div class="help-cat-icon">🧾</div><div class="help-cat-body"><h5>Onkostennota's</h5><p>Vergoedingsaanvragen voor fiets, openbaar vervoer en eigen wagen. Zichtbaar voor alle personeelsleden.</p></div></div>
+
+      <h4>&#128101; Personeelsbeheer</h4>
+      <div class="help-cat-row"><div class="help-cat-icon">👥</div><div class="help-cat-body"><h5>Leerkrachten Volgsysteem</h5><p>Personeelsgegevens, functies en aanstellingen. Enkel zichtbaar voor directie, secretariaat en systeembeheer.</p></div></div>
+
+      <h4>&#128203; Planning</h4>
+      <div class="help-cat-row"><div class="help-cat-icon">🚌</div><div class="help-cat-body"><h5>Schooluitstappen</h5><p>Uitstappen aanvragen en goedkeuren met driefasige workflow. Zichtbaar voor alle personeelsleden.</p></div></div>
+
+      <h4>&#127979; Professionalisering</h4>
+      <div class="help-cat-row"><div class="help-cat-icon">🧭</div><div class="help-cat-body"><h5>DigiKompas LONKA</h5><p>Zelfscan digitale geletterdheid en jaarplanner (OVSG Leer Lokaal). Zichtbaar voor alle personeelsleden.</p></div></div>
+
+      <h4>&#128202; Overig</h4>
+      <div class="help-cat-row"><div class="help-cat-icon">🔗</div><div class="help-cat-body"><h5>Sociogram</h5><p>Analyse van sociometrische vragenlijsten. Werkt volledig lokaal in de browser.</p></div></div>
+
+    </div>
+
+    <!-- ROLLEN -->
+    <div class="help-section" id="help-rollen">
+      <h3>&#128100; Wie ziet wat?</h3>
+      <p>Wat je ziet in het portaal hangt af van je rol en je school. Rollen worden ingesteld door de ICT-coördinator.</p>
+      
+      <h4>Scholen</h4>
+      <div class="help-role-row"><div class="help-role-badge" style="background:#1F4E79">Centrumschool</div><div class="help-role-desc">Kleuterschool en lagere school, Londerzeel centrum</div></div>
+      <div class="help-role-row"><div class="help-role-badge" style="background:#2E6DA4">Kouterschool</div><div class="help-role-desc">Kleuterschool en lagere school</div></div>
+      <div class="help-role-row"><div class="help-role-badge" style="background:#4A90C4">School Ter Elst</div><div class="help-role-desc">Lagere school (geen kleuteronderwijs)</div></div>
+
+      <h4>Rollen</h4>
+      <div class="help-role-row"><div class="help-role-badge" style="background:#555">Personeelslid</div><div class="help-role-desc">Standaardrol: Meldpunt, Onkosten, Schooluitstappen, DigiKompas</div></div>
+      <div class="help-role-row"><div class="help-role-badge" style="background:#1A6BB5">Directie</div><div class="help-role-desc">+ Leerkrachten Volgsysteem (eigen school), goedkeuren uitstappen en onkosten</div></div>
+      <div class="help-role-row"><div class="help-role-badge" style="background:#C05A1A">Secretariaat</div><div class="help-role-desc">+ Leerkrachten Volgsysteem (alle scholen), maandoverzichten</div></div>
+      <div class="help-role-row"><div class="help-role-badge" style="background:#1F4E79">Systeembeheer</div><div class="help-role-desc">Volledige toegang inclusief rolbeheer en instellingen</div></div>
+
+      <h4>Toegang aanvragen</h4>
+      <p>Heb je geen toegang tot een app die je nodig hebt? Contacteer de ICT-coördinator om je rol aan te passen.</p>
+      <div class="help-tip"><strong>Cross-scholengroep:</strong> sommige medewerkers (bv. secretariaat) hebben toegang tot apps van beide scholengroepen. Dit wordt apart ingesteld.</div>
+    </div>
+
+    <!-- AANMELDEN -->
+    <div class="help-section" id="help-aanmelden">
+      <h3>&#128274; Aanmelden &amp; problemen</h3>
+      <h4>Normaal aanmelden</h4>
+      <ul>
+        <li>Ga naar het portaal via de schoollink</li>
+        <li>Klik op <strong>Aanmelden met Microsoft</strong></li>
+        <li>Gebruik je school-e-mailadres en wachtwoord</li>
+        <li>Bij eerste gebruik kan een éénmalige toestemming gevraagd worden</li>
+      </ul>
+      <h4>Veelgestelde problemen</h4>
+      <p><strong>Ik zie geen apps na aanmelden</strong><br>Je account is nog niet geconfigureerd. Contacteer de ICT-coördinator.</p>
+      <p><strong>Ik krijg een foutmelding bij het openen van een app</strong><br>Probeer de pagina te herladen (F5). Blijft het probleem, meld het bij de ICT-coördinator.</p>
+      <p><strong>Ik zie minder apps dan mijn collega</strong><br>Dit is normaal — apps worden gefilterd op rol en school. Contacteer de ICT-coördinator als je toegang nodig hebt tot een bepaalde app.</p>
+      <div class="help-tip"><strong>Technische vragen:</strong> ict@gebaska.be of ict@centrumschool.londerzeel.be</div>
+    </div>
+
+  </div>
+  <div class="help-footer">Scholengroep Londerzeel BaO — ict@centrumschool.londerzeel.be</div>
+</div>
+
 </body>
 </html>
