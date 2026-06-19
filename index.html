@@ -804,31 +804,41 @@ function cardHTML(app) {
     </a>`;
 }
 
-async async function openApp(id) {
+function openApp(id) {
   const app = APPS.find(a => a.id === id);
   if (!app) return;
   document.getElementById("overlay-title").textContent = app.title;
   document.getElementById("app-overlay").classList.add("active");
   history.pushState({ overlay: id }, "", "#" + id);
 
-  // Haal token op voor de app
-  let token = null;
-  try {
-    const account = msalApp.getActiveAccount() || msalApp.getAllAccounts()[0];
-    if (account) {
-      const r = await msalApp.acquireTokenSilent({ scopes: ["Sites.ReadWrite.All"], account });
-      token = r.accessToken;
-    }
-  } catch(e) { console.warn("Token ophalen mislukt:", e); }
-
-  // Laad iframe en stuur token zodra geladen
   const frame = document.getElementById("app-frame");
-  frame.onload = () => {
-    if (token && frame.contentWindow) {
-      frame.contentWindow.postMessage({ type: "MSAL_TOKEN", token, email: currentAccount?.username || "" }, "*");
-    }
-  };
   frame.src = app.url;
+
+  // Token ophalen en sturen zodra iframe geladen is
+  let account = null;
+  try { account = msalApp.getActiveAccount() || msalApp.getAllAccounts()[0]; } catch(e) {}
+
+  if (account) {
+    msalApp.acquireTokenSilent({ scopes: ["Sites.ReadWrite.All"], account })
+      .then(r => {
+        frame.onload = () => {
+          if (frame.contentWindow) {
+            frame.contentWindow.postMessage(
+              { type: "MSAL_TOKEN", token: r.accessToken, email: account.username || "" },
+              "*"
+            );
+          }
+        };
+        // Als iframe al geladen was vóór token klaar
+        try {
+          frame.contentWindow.postMessage(
+            { type: "MSAL_TOKEN", token: r.accessToken, email: account.username || "" },
+            "*"
+          );
+        } catch(e) {}
+      })
+      .catch(e => console.warn("Token ophalen mislukt:", e));
+  }
 }
 
 function closeOverlay() {
