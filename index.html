@@ -398,6 +398,7 @@
     </button>
     <span class="overlay-title" id="overlay-title"></span>
     <button onclick="openHelp()" title="Help" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:8px;color:white;padding:6px 14px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px;flex-shrink:0;margin-left:auto">&#63; Help</button>
+    
   </div>
   <iframe id="app-frame" src="" title="Applicatie"></iframe>
 </div>
@@ -871,11 +872,7 @@ function showApp() {
 // ═══════════════════════════════════════════════
 window.addEventListener("DOMContentLoaded", msalInit);
 
-function openHelp(){
-  document.getElementById('helpOverlay').classList.add('on');
-  document.getElementById('helpDrawer').classList.add('on');
-  document.body.style.overflow='hidden';
-}
+
 function closeHelp(){
   document.getElementById('helpOverlay').classList.remove('on');
   document.getElementById('helpDrawer').classList.remove('on');
