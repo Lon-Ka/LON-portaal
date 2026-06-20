@@ -890,7 +890,19 @@ function showHelpTab(id,btn){
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeHelp();});
 
 
-function openHelp(){document.getElementById('helpOverlay').classList.add('on');document.getElementById('helpDrawer').classList.add('on');document.body.style.overflow='hidden';}
+function openHelp(){
+  const overlay = document.getElementById('app-overlay');
+  const frame = document.getElementById('app-frame');
+  if (overlay && overlay.classList.contains('active') && frame && frame.src) {
+    // App is open in iframe — stuur OPEN_HELP naar de app
+    try { frame.contentWindow.postMessage({ type: 'OPEN_HELP' }, '*'); } catch(e) {}
+  } else {
+    // Portaal zelf is actief — toon portaal help drawer
+    document.getElementById('helpOverlay').classList.add('on');
+    document.getElementById('helpDrawer').classList.add('on');
+    document.body.style.overflow='hidden';
+  }
+}
 function closeHelp(){document.getElementById('helpOverlay').classList.remove('on');document.getElementById('helpDrawer').classList.remove('on');document.body.style.overflow='';}
 function showHelpTab(id,btn){document.querySelectorAll('.help-section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.help-tab').forEach(t=>t.classList.remove('active'));document.getElementById('help-'+id).classList.add('active');btn.classList.add('active');}
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeHelp();});
