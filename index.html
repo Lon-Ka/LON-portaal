@@ -369,7 +369,7 @@
     <div class="user-chip">
       <div class="user-avatar" id="user-avatar">?</div>
       <span class="user-name" id="user-display-name">–</span>
-      <button onclick="openHelp()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:8px;color:white;padding:6px 14px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px;margin-right:8px">&#63; Help</button><button class="btn-logout" onclick="signOut()">Afmelden</button>
+      <a href="privacy.html" style="font-size:11px;color:rgba(255,255,255,.75);text-decoration:none;margin-right:10px;opacity:.85">🔒 Privacy & GDPR</a><button onclick="openHelp()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:8px;color:white;padding:6px 14px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px;margin-right:8px">&#63; Help</button><button class="btn-logout" onclick="signOut()">Afmelden</button>
     </div>
   </header>
 
@@ -531,7 +531,7 @@ const APPS = [
     accentLight: "#E0F7FA",
     tag: "Professionalisering",
     tagColor: "#0891B2",
-    roles: [],
+    roles: ["leerkracht", "directie", "admin"],
     school: null,
     category: "professionalisering",
   },
@@ -545,7 +545,7 @@ const APPS = [
     accentLight: "#E0F7FA",
     tag: "Professionalisering",
     tagColor: "#0891B2",
-    roles: [],
+    roles: ["leerkracht", "directie", "admin"],
     school: null,
     category: "professionalisering",
   },
