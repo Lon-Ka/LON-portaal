@@ -758,8 +758,8 @@ function renderApps() {
   }
 
   // Groepeer: voor iedereen vs. beperkt
-  const general = visible.filter(a => a.roles.length === 0);
-  const restricted = visible.filter(a => a.roles.length > 0);
+  const general = visible.filter(a => a.category !== "beheer");
+  const restricted = visible.filter(a => a.category === "beheer");
 
   let html = "";
   if (general.length) {
