@@ -11,9 +11,9 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --kie-color: #1A6BB5;   /* Het Kiezeltje – blauw */
-      --kei-color: #2E8B57;   /* De Kei – groen */
-      --mul-color: #C05A1A;   /* 't Mulderke – donker oranje */
+      --centrum-color: #1A6BB5;   /* Centrumschool – blauw */
+      --kouter-color:  #2E8B57;   /* Kouterschool – groen */
+      --terelst-color: #C05A1A;   /* Ter Elst – donker oranje */
       --base:      #0F1D2E;   /* nacht-blauw basis */
       --surface:   #F5F7FA;
       --card-bg:   #FFFFFF;
@@ -454,7 +454,7 @@ const ROLE_CONFIG = {
 //   tag         – label op de kaart (vrije tekst)
 //   tagColor    – kleur van het label
 //   roles       – [] = iedereen, anders lijst van rollen
-//   school      – optioneel: "De Kei" | "Het Kiezeltje" | "'t Mulderke" | null
+//   school      – optioneel: "Centrumschool" | "Kouterschool" | "Ter Elst" | null
 //   category    – optioneel: voor toekomstige groepering
 //
 // ➕ Nieuwe app toevoegen: kopieer een blok hieronder en pas aan.
@@ -540,7 +540,7 @@ const APPS = [
     title: "DigiKompas LONKA",
     subtitle: "Persoonlijke zelfscan en jaarplanner voor digitale geletterdheid.",
     icon: "🧭",
-    url: "https://lon-ka.github.io/DigiKompas/",
+    url: "https://lon-ka.github.io/LON-DigiKompas/",
     accent: "#0891B2",
     accentLight: "#E0F7FA",
     tag: "Professionalisering",
@@ -561,7 +561,7 @@ const APPS = [
   //   tag: "Categorie",
   //   tagColor: "#...",
   //   roles: [],        // [] = iedereen, of bv. ["admin", "directie"]
-  //   school: null,     // of "De Kei" / "Het Kiezeltje" / "'t Mulderke"
+  //   school: null,     // of "Centrumschool" / "Kouterschool" / "Ter Elst"
   //   category: "...", // welzijn | financieel | personeel | planning | professionalisering
   // },
 
@@ -775,9 +775,9 @@ function renderApps() {
 
 function cardHTML(app) {
   const schoolColors = {
-    "De Kei":        { bg: "#E8F5EE", color: "#2E8B57" },
-    "Het Kiezeltje": { bg: "#EBF3FF", color: "#1A6BB5" },
-    "'t Mulderke":   { bg: "#FEF0E7", color: "#C05A1A" },
+    "Centrumschool": { bg: "#EBF3FF", color: "#1A6BB5" },
+    "Kouterschool":  { bg: "#E8F5EE", color: "#2E8B57" },
+    "Ter Elst":      { bg: "#FEF0E7", color: "#C05A1A" },
   };
   const sc = app.school ? schoolColors[app.school] || {} : null;
   const schoolBadge = sc
