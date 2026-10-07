@@ -368,8 +368,8 @@
     </div>
     <div class="user-chip">
       <div class="user-avatar" id="user-avatar">?</div>
-      <span class="user-name" id="user-display-name">–</span>
-      <a href="privacy.html" style="font-size:11px;color:rgba(255,255,255,.75);text-decoration:none;margin-right:10px;opacity:.85">🔒 Privacy & GDPR</a><button onclick="openHelp()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:8px;color:white;padding:6px 14px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px;margin-right:8px">&#63; Help</button><button class="btn-logout" onclick="signOut()">Afmelden</button>
+      <span style="display:inline-flex;flex-direction:column;line-height:1.15;margin-right:8px"><span class="user-name" id="user-display-name">–</span><span id="user-account" style="font-size:10px;color:rgba(255,255,255,.7)"></span></span>
+      <a href="privacy.html" style="font-size:11px;color:rgba(255,255,255,.75);text-decoration:none;margin-right:10px;opacity:.85">🔒 Privacy & GDPR</a><button onclick="openHelp()" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:8px;color:white;padding:6px 14px;cursor:pointer;font-size:12px;font-family:inherit;font-weight:600;display:inline-flex;align-items:center;gap:6px;margin-right:8px">&#63; Help</button><button class="btn-logout" onclick="switchAccount()" title="Aanmelden met een ander account" style="margin-right:6px">Ander account</button><button class="btn-logout" onclick="signOut()">Afmelden</button>
     </div>
   </header>
 
@@ -430,7 +430,8 @@ const ROLE_CONFIG = {
   // Fallback: UPN-patronen (tijdelijk, vervang door groepen)
   // Vaste e-mailadressen → rol-mapping
   emails: {
-    "ict@centrumschool.londerzeel.be": "admin",
+    "ict@londerwijs.londerzeel.be": "admin",
+    "ict@centrumschool.londerzeel.be": "admin", // oud adres (nu alias)
   },
   upnPatterns: [
     { pattern: /directie/i,         role: "directie" },
@@ -653,7 +654,14 @@ async function signIn() {
   } catch(e) { console.error(e); }
 }
 
+async function switchAccount() {
+  try { await msalApp.loginRedirect({ scopes: ["User.Read"], prompt: "select_account" }); }
+  catch(e) { console.error(e); }
+}
+
 function signOut() {
+  // Zonder account-parameter wist MSAL (v2) álle accounts uit deze browser,
+  // zodat een eerder gebruikt testaccount niet als actief account blijft hangen.
   msalApp.logoutRedirect({ postLogoutRedirectUri: window.location.href });
 }
 
@@ -661,11 +669,13 @@ function signOut() {
 // ROL BEPALEN
 // ═══════════════════════════════════════════════
 function determineRole(account) {
-  // 1. Via e-mailadres (exacte match)
-  const email = (account.username || "").toLowerCase();
-  if (ROLE_CONFIG.emails[email]) return ROLE_CONFIG.emails[email];
-  // 2. Via claims (als groepen geconfigureerd zijn in manifest)
+  // 1. Via e-mailadres (exacte match op alle adressen uit het token, hoofdletterongevoelig)
   const claims = account.idTokenClaims || {};
+  const adressen = [account.username, claims.preferred_username, claims.upn, claims.email]
+    .filter(Boolean).map(a => String(a).trim().toLowerCase());
+  const email = adressen[0] || "";
+  for (const a of adressen) if (ROLE_CONFIG.emails[a]) return ROLE_CONFIG.emails[a];
+  // 2. Via claims (als groepen geconfigureerd zijn in manifest)
   if (claims.groups && Array.isArray(claims.groups)) {
     for (const gid of claims.groups) {
       if (ROLE_CONFIG.groups[gid]) return ROLE_CONFIG.groups[gid];
@@ -673,7 +683,7 @@ function determineRole(account) {
   }
   // 3. Via UPN-patroon (fallback)
   for (const { pattern, role } of ROLE_CONFIG.upnPatterns) {
-    if (pattern.test(email)) return role;
+    if (adressen.some(a => pattern.test(a))) return role;
   }
   return ROLE_CONFIG.defaultRole;
 }
@@ -695,7 +705,11 @@ function renderWelcome() {
   const greeting = hour < 12 ? "Goedemorgen" : hour < 18 ? "Goedemiddag" : "Goedenavond";
 
   document.getElementById("greeting").textContent = `${greeting}, ${firstName}`;
-  document.getElementById("user-display-name").textContent = name;
+  const dn = document.getElementById("user-display-name");
+  dn.textContent = name;
+  dn.title = `Aangemeld als ${currentAccount.username}`;
+  const acc = document.getElementById("user-account");
+  if (acc) acc.textContent = currentAccount.username;
 
   const initials = name.split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
   document.getElementById("user-avatar").textContent = initials;
@@ -986,12 +1000,12 @@ document.addEventListener('keydown',function(e){if(e.key==='Escape')closeHelp();
       <p><strong>Ik zie geen apps na aanmelden</strong><br>Je account is nog niet geconfigureerd. Contacteer de ICT-coördinator.</p>
       <p><strong>Een app opent niet correct</strong><br>Probeer F5. Blijft het probleem, meld het bij de ICT-coördinator.</p>
       <p><strong>Ik zie minder apps dan mijn collega</strong><br>Normaal — apps zijn gefilterd op rol. Contacteer de ICT-coördinator voor extra toegang.</p>
-      <div class="help-tip"><strong>Contact:</strong> ict@centrumschool.londerzeel.be</div>
+      <div class="help-tip"><strong>Contact:</strong> ict@londerwijs.londerzeel.be</div>
       <p style="margin-top:1rem"><a href="https://lon-ka.github.io/LON-portaal/privacy.html" target="_blank" style="color:#1F4E79;font-weight:600">🔒 Volledige Privacy & GDPR-informatie →</a></p>
     </div>
   </div>
 
-  <div class="help-footer">Scholengroep Londerzeel BaO — ict@centrumschool.londerzeel.be</div>
+  <div class="help-footer">Scholengroep Londerzeel BaO — ict@londerwijs.londerzeel.be</div>
 </div>
 
 </body>
