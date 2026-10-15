@@ -456,6 +456,8 @@ const ROLE_CONFIG = {
 //   tagColor    – kleur van het label
 //   roles       – [] = iedereen, anders lijst van rollen
 //   school      – optioneel: "Centrumschool" | "Kouterschool" | "Ter Elst" | null
+//                 (label op de kaart; met onlySchool: true is de tegel ENKEL zichtbaar
+//                  voor personeel van die school — systeembeheerders zien alles)
 //   category    – optioneel: voor toekomstige groepering
 //
 // ➕ Nieuwe app toevoegen: kopieer een blok hieronder en pas aan.
@@ -534,6 +536,21 @@ const APPS = [
     tagColor: "#0891B2",
     roles: ["leerkracht", "directie", "admin"],
     school: null,
+    category: "professionalisering",
+  },
+  {
+    id: "ko-sociogram",
+    title: "Sociogram Kouterschool",
+    subtitle: "Sociogram met de vragenset van de Kouterschool (16 vragen over spelen, samenwerken, hulp, troost en meedoen).",
+    icon: "🔗",
+    url: "https://lon-ka.github.io/KO-Sociogram/",
+    accent: "#2E8B57",
+    accentLight: "#E8F5EE",
+    tag: "Professionalisering",
+    tagColor: "#2E8B57",
+    roles: ["leerkracht", "directie", "admin"],
+    school: "Kouterschool",
+    onlySchool: true,
     category: "professionalisering",
   },
   {
@@ -693,9 +710,46 @@ function determineRole(account) {
 // ═══════════════════════════════════════════════
 async function loadApp() {
   currentRole = determineRole(currentAccount);
+  currentSchools = schoolsFromAddresses(currentAccount);
   showApp();
   renderWelcome();
   renderApps();
+  // School(s) aanvullen via het profiel (Department / kantoorlocatie) — nodig voor
+  // personeel met een @londerwijs-adres dat niet aan één schooldomein gekoppeld is.
+  try {
+    const t = await msalApp.acquireTokenSilent({ scopes: ["User.Read"], account: currentAccount });
+    const r = await fetch("https://graph.microsoft.com/v1.0/me?$select=department,officeLocation,companyName,mail,otherMails",
+      { headers: { Authorization: "Bearer " + t.accessToken } });
+    if (r.ok) {
+      const me = await r.json();
+      const tekst = [me.department, me.officeLocation, me.companyName, me.mail, ...(me.otherMails || [])]
+        .filter(Boolean).join(" ");
+      SCHOOL_MATCH.forEach(({ school, pattern }) => {
+        if (pattern.test(tekst) && !currentSchools.includes(school)) currentSchools.push(school);
+      });
+      renderApps();
+    }
+  } catch (e) { console.warn("Schoolprofiel niet opgehaald:", e); }
+}
+
+// ═══════════════════════════════════════════════
+// SCHOOL BEPALEN (voor tegels met onlySchool)
+// ═══════════════════════════════════════════════
+let currentSchools = [];
+const SCHOOL_MATCH = [
+  { school: "Centrumschool", pattern: /centrumschool/i },
+  { school: "Kouterschool",  pattern: /kouter/i },
+  { school: "Ter Elst",      pattern: /ter\s*elst|terelst/i },
+];
+function schoolsFromAddresses(account) {
+  const claims = account.idTokenClaims || {};
+  const tekst = [account.username, claims.preferred_username, claims.upn, claims.email].filter(Boolean).join(" ");
+  return SCHOOL_MATCH.filter(({ pattern }) => pattern.test(tekst)).map(({ school }) => school);
+}
+function schoolAllowed(app, role) {
+  if (!app.onlySchool || !app.school) return true;
+  if (role === "admin") return true;
+  return currentSchools.includes(app.school);
 }
 
 function renderWelcome() {
@@ -770,7 +824,8 @@ function switchPreviewRole(role) {
 function renderApps() {
   const effectiveRole = previewRole || currentRole;
   const visible = APPS.filter(app =>
-    app.roles.length === 0 || app.roles.includes(effectiveRole)
+    (app.roles.length === 0 || app.roles.includes(effectiveRole)) &&
+    schoolAllowed(app, previewRole ? null : currentRole)
   );
 
   const container = document.getElementById("apps-container");
